@@ -66,13 +66,13 @@ int main() {
     // two different allocations in order to verify results at the end!
     int *host_product_serial, *host_final_product;
     host_product_serial = (int *) malloc((degreeOfProduct+1) * sizeof(int)); // sum of products is intrinsic
-    // host_product_parallel = (int *) malloc(numTerms * numTerms * sizeof(int)); // because of n threads in each n thread blocks
+    host_product_parallel = (int *) malloc(numTerms * numTerms * sizeof(int)); // because of n threads in each n thread blocks
     host_final_product = (int *) malloc((degreeOfProduct+1) * sizeof(int)); // final product from parallel version once summed
 
     // ensure all vals in host_product_parallel are 0 (this is done within the serial version so we don't need to worry about that one)
-    // for (int i = 0; i < numTerms*numTerms; i++) {
-    //     host_product_parallel[i] = 0;
-    // }
+    for (int i = 0; i < numTerms*numTerms; i++) {
+        host_product_parallel[i] = 0;
+    }
     // ensure all vals in host_final_product are 0
     for (int i = 0; i < degreeOfProduct+1; i++) {
         host_final_product[i] = 0;
@@ -82,13 +82,12 @@ int main() {
     int *dev_polyA, *dev_polyB, *dev_product;
     cudaMalloc( (void **) &dev_polyA, numTerms * sizeof(int));
     cudaMalloc( (void **) &dev_polyB, numTerms * sizeof(int));
-    // cudaMalloc( (void **) &dev_product, numTerms * numTerms * sizeof(int));
-    cudaMalloc( (void **) &dev_product, (degreeOfProduct+1) * sizeof(int));
+    cudaMalloc( (void **) &dev_product, numTerms * numTerms * sizeof(int));
 
     // copy polynomials: host -> device (dest, src, size, direction)
     cudaMemcpy(dev_polyA, host_polyA, numTerms * sizeof(int), cudaMemcpyHostToDevice); 
     cudaMemcpy(dev_polyB, host_polyB, numTerms * sizeof(int), cudaMemcpyHostToDevice); 
-    cudaMemcpy(dev_product, host_final_product, (degreeOfProduct+1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_product, host_product_parallel, numTerms * numTerms * sizeof(int), cudaMemcpyHostToDevice);
 
     // setup kernel params & launch
     dim3 dimGrid(blocks);
@@ -98,21 +97,11 @@ int main() {
     cudaThreadSynchronize(); // wait for ALL threads from all blocks to complete
     checkCUDAError("kernel invocation");
 
-    // now copy dev_product back into host_product_parallel
-    // cudaMemcpy(/*dest*/ host_product_parallel, /*src*/ dev_product, /*size*/ (degreeOfProduct+1) * sizeof(int), /*direction*/ cudaMemcpyDeviceToHost);
-    cudaMemcpy(/*dest*/ host_final_product, /*src*/ dev_product, /*size*/ (degreeOfProduct+1) * sizeof(int), /*direction*/ cudaMemcpyDeviceToHost);
-
+    // now copy dev_product back into host_product_parallel (dest, src, size, direction)
+    cudaMemcpy(host_product_parallel, dev_product, numTerms * numTerms * sizeof(int), cudaMemcpyDeviceToHost);
+    
     // multiply polynomials in serial and write to host_product_serial for verification later
     multPolynomialsSerial(host_polyA, host_polyB, numTerms, host_product_serial, degreeOfProduct + 1);
-
-    // print result
-    // printf("resulting product of polynomials (after applying mod) is:\n");
-    // for (int i = 0; i < degreeOfProduct+1; i++) {
-    //     printf("%dx^%d ", product[i], i);
-    //     if (i != degreeOfProduct) {
-    //         printf("+ ");
-    //     }
-    // }
 
     printf("serial produced:\n");
     for (int i = 0; i < degreeOfProduct+1; i++) {
@@ -121,21 +110,24 @@ int main() {
             printf("+ ");
         }
     }
-    printf("\n\nparallel produced:\n");
-    for (int i = 0; i < degreeOfProduct+1; i++) {
-        printf("%dx^%d ", host_final_product[i], i);
+    printf("\n\nintermediary parallel step:\n");
+    for (int i = 0; i < numTerms*numTerms; i++) {
+        printf("%dx^%d ", host_product_parallel[i], i);
         if (i != degreeOfProduct) {
             printf("+ ");
         }
-    }
-    printf("\n\nequal??? ");
-    for (int i = 0; i < degreeOfProduct+1; i++) {
-        if (host_product_serial[i] == host_final_product[i]) {
-            printf("Y ");
-        } else {
-            printf("N ");
+        if (i%threadsPerBlock == 0) {
+            printf("| ");
         }
     }
+    // printf("\n\nequal??? ");
+    // for (int i = 0; i < degreeOfProduct+1; i++) {
+    //     if (host_product_serial[i] == host_final_product[i]) {
+    //         printf("Y ");
+    //     } else {
+    //         printf("N ");
+    //     }
+    // }
 
     // free host and device memory
     free(host_polyA);
@@ -191,11 +183,15 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
 }
 
 __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy) {
-    int a = blockIdx.x; // n blocks means each block has a corresponding term in A
-    int b = (blockIdx.x + threadIdx.x) % polySize; // each thread assigned to term in B
-    int degreeOfTerms = a + b;
+    // int a = blockIdx.x; // n blocks means each block has a corresponding term in A
+    // int b = (blockIdx.x + threadIdx.x) % polySize; // each thread assigned to term in B
+    // int degreeOfTerms = a + b;
+    // product[degreeOfTerms] = (product[degreeOfTerms] + polyA[a] * polyB[b]) % modBy; 
 
-    product[degreeOfTerms] = (product[degreeOfTerms] + polyA[a] * polyB[b]) % modBy; 
+    int a = blockIdx.x;
+    int b = threadIdx.x;
+    int myIndex = blockDim.x * blockIdx.x + threadIdx.x;
+    product[myIndex] = polyA[a] * polyB[b];
 }
 
 void checkCUDAError(const char *msg) {
