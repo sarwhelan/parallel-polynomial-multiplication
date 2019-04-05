@@ -25,7 +25,7 @@ int main() {
     printf("Specify the number of terms in the polynomial by specifying the exponent on base 2, UP TO 10, e.g. enter '3' if you want 2^3 terms (AKA 8 terms) per polynomial: ");
     scanf("%d", &numTerms);
 
-    printf("You entered '%d'.\n", numTerms);
+    printf("\n\nYou entered '%d'.\n", numTerms);
     if (numTerms > 10) {
         printf("Invalid entry. The maximum number of terms is 2^10. Please enter a term less than or equal to 10 next time.");
         return 1;
