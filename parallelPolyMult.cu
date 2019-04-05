@@ -80,15 +80,15 @@ int main() {
     // cudaMalloc( (void **) &dev_product, numTerms * numTerms * sizeof(int));
     cudaMalloc( (void **) &dev_product, (degreeOfProduct+1) * sizeof(int));
 
-    // copy polynomials: host -> device
-    cudaMemcpy(/*dest*/ dev_polyA, /*src*/ host_polyA, /*size*/ numTerms * sizeof(int)), /*direction*/ cudaMemcpyHostToDevice); 
-    cudaMemcpy(/*dest*/ dev_polyB, /*src*/ host_polyB, /*size*/ numTerms * sizeof(int)), /*direction*/ cudaMemcpyHostToDevice); 
-    cudaMemcpy(/*dest*/ dev_product, /*src*/ host_final_product, /*size*/ (degreeOfProduct+1) * sizeof(int), /*direction*/ cudaMemcpyHostToDevice);
+    // copy polynomials: host -> device (dest, src, size, direction)
+    cudaMemcpy(dev_polyA, host_polyA, numTerms * sizeof(int)), cudaMemcpyHostToDevice); 
+    cudaMemcpy(dev_polyB, host_polyB, numTerms * sizeof(int)), cudaMemcpyHostToDevice); 
+    cudaMemcpy(dev_product, host_final_product, (degreeOfProduct+1) * sizeof(int), cudaMemcpyHostToDevice);
 
     // setup kernel params & launch
     dim3 dimGrid(blocks);
     dim3 dimBlock(threadsPerBlock);
-    multPolynomialsParallel<<<dimGrid, dimBlock>>>(dev_polyA, dev_polyB, dev_product);
+    multPolynomialsParallel<<<dimGrid, dimBlock>>>(dev_polyA, dev_polyB, dev_product, numTerms);
 
     cudaThreadSynchronize(); // wait for ALL threads from all blocks to complete
     checkCUDAError("kernel invocation");
@@ -125,7 +125,7 @@ int main() {
     }
     printf("\n\nequal???/n");
     for (int i = 0; i < degreeOfProduct+1; i++) {
-        if (host_product_serial[i] == host_final_product[i] {
+        if (host_product_serial[i] == host_final_product[i]) {
             printf("Y ");
         } else {
             printf("N ");
@@ -142,7 +142,7 @@ int main() {
     cudaFree(dev_polyB);
     cudaFree(dev_product);
 
-    return 1;
+    return 0;
 }
 
 // genPolynomials takes two polynomials and their size (number of terms per polynomial),
@@ -185,11 +185,11 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
     }
 }
 
-void multPolynomialsParallel(int *polyA, int *polyB, int *product) {
+__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize) {
     int a = blockIdx.x; // n blocks means each block has a corresponding term in A
     int b = (blockIdx.x + threadIdx.x) % polySize; // each thread assigned to term in B
     int degreeOfTerms = a + b;
 
-    product[a+b] = (product[a*b] + polyA[a] * polyB[b]) % modBy; 
+    product[degreeOfTerms] = (product[a*b] + polyA[a] * polyB[b]) % modBy; 
 }
 
