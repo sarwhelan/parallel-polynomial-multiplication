@@ -2,6 +2,9 @@
     CS 4402 Distributed and Parallel Systems
     Assignment 2 Question 1: N thread blocks and N threads per thread block
     Sarah Whelan 250778849
+    
+    TO RUN: nvcc q1_swhela2.cu -o q1_swhela2
+            ./q1_swhela2
 */
 
 #include <stdio.h>
