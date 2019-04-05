@@ -2,7 +2,7 @@
     CS 4402 Distributed and Parallel Systems
     Assignment 2 Question 1: N thread blocks and N threads per thread block
     Sarah Whelan 250778849
-    
+
     TO RUN: nvcc q1_swhela2.cu -o q1_swhela2
             ./q1_swhela2
 */
@@ -29,10 +29,10 @@ int main() {
     scanf("%d", &numTerms);
 
     printf("\nYou entered '%d'.\n", numTerms);
-    if (numTerms > 10) {
-        printf("Invalid entry. The maximum number of terms is 2^10. Please enter a term less than or equal to 10 next time.");
-        return 1;
-    }
+    // if (numTerms > 10) {
+    //     printf("Invalid entry. The maximum number of terms is 2^10. Please enter a term less than or equal to 10 next time.");
+    //     return 1;
+    // }
     
     // then bitshift by input value to determine actual value of numTerms
     numTerms = 1 << numTerms;
