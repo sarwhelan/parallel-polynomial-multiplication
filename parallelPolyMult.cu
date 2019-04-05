@@ -5,6 +5,11 @@
 
 int modBy = 103; // common prime num used for modding coefficient values during generation, multiplication, and addition
 
+void genPolynomials(int *polyA, int *polyB, int size);
+void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, int productSize, int modBy);
+__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize);
+void checkCUDAError(const char* msg);
+
 int main() {
     srand(time(NULL));
     int numTerms;
@@ -88,7 +93,7 @@ int main() {
     // setup kernel params & launch
     dim3 dimGrid(blocks);
     dim3 dimBlock(threadsPerBlock);
-    multPolynomialsParallel<<<dimGrid, dimBlock>>>(dev_polyA, dev_polyB, dev_product, numTerms);
+    multPolynomialsParallel<<<dimGrid, dimBlock>>>(dev_polyA, dev_polyB, dev_product, numTerms, modBy);
 
     cudaThreadSynchronize(); // wait for ALL threads from all blocks to complete
     checkCUDAError("kernel invocation");
@@ -98,7 +103,7 @@ int main() {
     cudaMemcpy(/*dest*/ host_final_product, /*src*/ dev_product, /*size*/ (degreeOfProduct+1) * sizeof(int), /*direction*/ cudaMemcpyDeviceToHost);
 
     // multiply polynomials in serial and write to host_product_serial for verification later
-    multPolynomialsSerial(polyA, polyB, numTerms, host_product_serial, degreeOfProduct + 1);
+    multPolynomialsSerial(host_polyA, host_polyB, numTerms, host_product_serial, degreeOfProduct + 1);
 
     // print result
     // printf("resulting product of polynomials (after applying mod) is:\n");
@@ -185,11 +190,22 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
     }
 }
 
-__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize) {
+__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy) {
     int a = blockIdx.x; // n blocks means each block has a corresponding term in A
     int b = (blockIdx.x + threadIdx.x) % polySize; // each thread assigned to term in B
     int degreeOfTerms = a + b;
 
     product[degreeOfTerms] = (product[a*b] + polyA[a] * polyB[b]) % modBy; 
+}
+
+void checkCUDAError(const char *msg)
+{
+    cudaError_t err = cudaGetLastError();
+    if( cudaSuccess != err)
+    {
+        fprintf(stderr, "Cuda error: %s: %s.\n", msg,
+                              cudaGetErrorString( err) );
+        exit(EXIT_FAILURE);
+    }
 }
 
