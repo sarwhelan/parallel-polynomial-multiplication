@@ -116,7 +116,7 @@ int main() {
         if (i != degreeOfProduct) {
             printf("+ ");
         }
-        if (i%threadsPerBlock == 0) {
+        if ((i+1)%threadsPerBlock == 0) {
             printf("| ");
         }
     }
