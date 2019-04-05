@@ -6,8 +6,8 @@
 int modBy = 103; // common prime num used for modding coefficient values during generation, multiplication, and addition
 
 void genPolynomials(int *polyA, int *polyB, int size);
-void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, int productSize, int modBy);
-__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize);
+void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, int productSize);
+__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy);
 void checkCUDAError(const char* msg);
 
 int main() {
@@ -64,7 +64,7 @@ int main() {
     // allocate blocks of memory on the host for storing the product with size degreeOfProduct + 1 (serial)
     // and numTerms*numTerms for the intermediary parallel product, as well asthe final parallel product
     // two different allocations in order to verify results at the end!
-    int *host_product_serial, *host_product_parallel, *host_final_product;
+    int *host_product_serial, *host_final_product;
     host_product_serial = (int *) malloc((degreeOfProduct+1) * sizeof(int)); // sum of products is intrinsic
     // host_product_parallel = (int *) malloc(numTerms * numTerms * sizeof(int)); // because of n threads in each n thread blocks
     host_final_product = (int *) malloc((degreeOfProduct+1) * sizeof(int)); // final product from parallel version once summed
@@ -86,8 +86,8 @@ int main() {
     cudaMalloc( (void **) &dev_product, (degreeOfProduct+1) * sizeof(int));
 
     // copy polynomials: host -> device (dest, src, size, direction)
-    cudaMemcpy(dev_polyA, host_polyA, numTerms * sizeof(int)), cudaMemcpyHostToDevice); 
-    cudaMemcpy(dev_polyB, host_polyB, numTerms * sizeof(int)), cudaMemcpyHostToDevice); 
+    cudaMemcpy(dev_polyA, host_polyA, numTerms * sizeof(int), cudaMemcpyHostToDevice); 
+    cudaMemcpy(dev_polyB, host_polyB, numTerms * sizeof(int), cudaMemcpyHostToDevice); 
     cudaMemcpy(dev_product, host_final_product, (degreeOfProduct+1) * sizeof(int), cudaMemcpyHostToDevice);
 
     // setup kernel params & launch
