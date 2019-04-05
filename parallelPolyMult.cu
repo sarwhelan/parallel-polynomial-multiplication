@@ -191,7 +191,7 @@ __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, in
     int a = blockIdx.x;
     int b = threadIdx.x;
     int myIndex = blockDim.x * blockIdx.x + threadIdx.x;
-    product[myIndex] = polyA[a] * polyB[b];
+    product[myIndex] = (polyA[a] * polyB[b]) % modBy;
 }
 
 void checkCUDAError(const char *msg) {
