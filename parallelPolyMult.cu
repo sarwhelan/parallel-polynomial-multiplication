@@ -1,3 +1,9 @@
+/*
+    CS 4402 Distributed and Parallel Systems
+    Assignment 2 Question 1: N thread blocks and N threads per thread block
+    Sarah Whelan 250778849
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -8,6 +14,7 @@ int modBy = 103; // common prime num used for modding coefficient values during 
 void genPolynomials(int *polyA, int *polyB, int size);
 void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, int productSize);
 __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy);
+__global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy);
 void checkCUDAError(const char* msg);
 
 int main() {
@@ -97,37 +104,53 @@ int main() {
     cudaThreadSynchronize(); // wait for ALL threads from all blocks to complete
     checkCUDAError("kernel invocation");
 
-    // now copy dev_product back into host_product_parallel (dest, src, size, direction)
+    // copy dev_product back into host_product_parallel (dest, src, size, direction)
     cudaMemcpy(host_product_parallel, dev_product, numTerms * numTerms * sizeof(int), cudaMemcpyDeviceToHost);
     
-    // multiply polynomials in serial and write to host_product_serial for verification later
+    /* ~~~ now we need to deal with the summation of intermediary products ~~~ */
+
+    // allocate device mem for final product
+    int *dev_final;
+    cudaMalloc( (void **) &dev_final, (degreeOfProduct+1) * sizeof(int));
+
+    // copy zero'd host_final_product to dev_final (dest, src, size, direction) and host_product_parallel to dev_product
+    cudaMemcy(dev_final, host_final_product, (degreeOfProduct+1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_product, host_product_parallel, numTerms * numTerms * sizeof(int), cudaMemcpyHostToDevice);
+
+    // parameters are: int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy)
+    sumProductsParallel<<<dimGrid, dimBlock>>>(degreeOfProduct+1, threadsPerBlock, dev_final, dev_product, blocks, modBy);
+
+    cudaThreadSynchronize(); // wait for ALL threads from all blocks to complete
+    checkCUDAError("kernel invocation");
+
+    // copy summation of products back to host (dest, src, size, direction)
+    cudaMemcpy(host_final_product, dev_final, (degreeOfProduct+1) * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // multiply polynomials in serial and write to host_product_serial for verification
     multPolynomialsSerial(host_polyA, host_polyB, numTerms, host_product_serial, degreeOfProduct + 1);
 
-    printf("serial produced:\n");
+    printf("serial result:\n");
     for (int i = 0; i < degreeOfProduct+1; i++) {
         printf("%dx^%d ", host_product_serial[i], i);
         if (i != degreeOfProduct) {
             printf("+ ");
         }
     }
-    printf("\n\nintermediary parallel step:\n");
-    for (int i = 0; i < numTerms*numTerms; i++) {
-        printf("%dx^%d ", host_product_parallel[i], i);
+    printf("\n\nparallel result:\n");
+    for (int i = 0; i < degreeOfProduct; i++) {
+        printf("%dx^%d ", host_final_product[i], i);
         if (i != degreeOfProduct) {
             printf("+ ");
         }
-        if ((i+1)%threadsPerBlock == 0) {
-            printf("| ");
+    }
+    printf("\n\nequal??? ");
+    for (int i = 0; i < degreeOfProduct+1; i++) {
+        if (host_product_serial[i] == host_final_product[i]) {
+            printf("Y ");
+        } else {
+            printf("N ");
         }
     }
-    // printf("\n\nequal??? ");
-    // for (int i = 0; i < degreeOfProduct+1; i++) {
-    //     if (host_product_serial[i] == host_final_product[i]) {
-    //         printf("Y ");
-    //     } else {
-    //         printf("N ");
-    //     }
-    // }
 
     // free host and device memory
     free(host_polyA);
@@ -160,8 +183,8 @@ void genPolynomials(int *polyA, int *polyB, int size) {
     }
 }
 
-// multPolynomialsSerial takes two polynomials and their size, in addition to a 
-// product memory block to place the sum of products into, as well as the size of the product polynomial
+// multPolynomialsSerial takes two polynomials and their size, in addition to a memory block to place 
+// the sum of products into, as well as the size of the product polynomial
 void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, int productSize) {
     int degreeOfTerms;
 
@@ -182,16 +205,29 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
     }
 }
 
+// multPolynomialsParallel determines the intermediary products of the polynomial multiplication problem
 __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy) {
-    // int a = blockIdx.x; // n blocks means each block has a corresponding term in A
-    // int b = (blockIdx.x + threadIdx.x) % polySize; // each thread assigned to term in B
-    // int degreeOfTerms = a + b;
-    // product[degreeOfTerms] = (product[degreeOfTerms] + polyA[a] * polyB[b]) % modBy; 
-
-    int a = blockIdx.x;
-    int b = threadIdx.x;
-    int myIndex = blockDim.x * blockIdx.x + threadIdx.x;
+    int a = blockIdx.x; // all threads in the same block will access the same polyA element
+    int b = threadIdx.x; // but all threads will access individual polyB elements
+    int myIndex = blockDim.x * blockIdx.x + threadIdx.x; // where to write this thread's product
     product[myIndex] = (polyA[a] * polyB[b]) % modBy;
+}
+
+// sumProductsParallel 
+__global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy) {
+    int responsibleFor = blockIdx.x * blockDim.x + threadId.x; // used to check which threads are going to be active during this step
+
+    if (responsibleFor < prodSize) { // e.g. if 1 < 7 then this thread is going to be in charge of summing x^1 terms, else will not be active for the remainder
+        for (int blockNum = 0; blockNum < numBlocks; blockNum++) {
+            for (int indexInBlock = 0; i < threadsPerBlock; indexInBlock++) {
+                int degreeOfElement = blockNum + indexInBlock;
+                if (degreeOfElement == responsibleFor) {
+                    int spotInProducts = blockNum * blockDim.x + indexInBlock;
+                    summedProduct[responsibleFor] = (summedProduct[responsibleFor] + products[spotInProducts]) % modBy;
+                }
+            }
+        }
+    }
 }
 
 void checkCUDAError(const char *msg) {
