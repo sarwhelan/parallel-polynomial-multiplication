@@ -114,7 +114,7 @@ int main() {
     cudaMalloc( (void **) &dev_final, (degreeOfProduct+1) * sizeof(int));
 
     // copy zero'd host_final_product to dev_final (dest, src, size, direction) and host_product_parallel to dev_product
-    cudaMemcy(dev_final, host_final_product, (degreeOfProduct+1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_final, host_final_product, (degreeOfProduct+1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_product, host_product_parallel, numTerms * numTerms * sizeof(int), cudaMemcpyHostToDevice);
 
     // parameters are: int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy)
@@ -215,11 +215,11 @@ __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, in
 
 // sumProductsParallel 
 __global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy) {
-    int responsibleFor = blockIdx.x * blockDim.x + threadId.x; // used to check which threads are going to be active during this step
+    int responsibleFor = blockIdx.x * blockDim.x + threadIdx.x; // used to check which threads are going to be active during this step
 
     if (responsibleFor < prodSize) { // e.g. if 1 < 7 then this thread is going to be in charge of summing x^1 terms, else will not be active for the remainder
         for (int blockNum = 0; blockNum < numBlocks; blockNum++) {
-            for (int indexInBlock = 0; i < threadsPerBlock; indexInBlock++) {
+            for (int indexInBlock = 0; indexInBlock < threadsPerBlock; indexInBlock++) {
                 int degreeOfElement = blockNum + indexInBlock;
                 if (degreeOfElement == responsibleFor) {
                     int spotInProducts = blockNum * blockDim.x + indexInBlock;
