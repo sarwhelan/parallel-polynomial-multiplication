@@ -162,7 +162,7 @@ void genPolynomials(int *polyA, int *polyB, int size) {
         }
 
         polyB[i] = rand() % modBy;
-        if (polyB == 0) {
+        if (polyB[i] == 0) {
             polyB[i] = 1;
         }
     }
@@ -193,8 +193,9 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
 __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy) {
     int a = blockIdx.x; // n blocks means each block has a corresponding term in A
     int b = (blockIdx.x + threadIdx.x) % polySize; // each thread assigned to term in B
+
     int degreeOfTerms = a + b;
-    printf("I am block=%d, thread=%d and the val of product[%d] is %d. adding %d * %d = %d, mod is %d\n\n", blockIdx.x, threadIdx.x, degreeOfTerms, product[degreeOfTerms], polyA[a], polyB[b], polyA[a]*polyB[b], (polyA[a]*polyB[b])%modBy);
+    printf("I am block=%d, thread=%d, a=%d, b=%d, and the val of product[%d] is %d. adding %d * %d = %d, mod is %d\n\n", blockIdx.x, threadIdx.x, a, b, degreeOfTerms, product[degreeOfTerms], polyA[a], polyB[b], polyA[a]*polyB[b], (polyA[a]*polyB[b])%modBy);
     product[degreeOfTerms] = (product[a*b] + polyA[a] * polyB[b]) % modBy; 
     printf("I am block=%d, thread=%d and now prouct[%d] is %d\n\n", blockIdx.x, threadIdx.x, degreeOfTerms, product[degreeOfTerms]);
 }
