@@ -213,7 +213,7 @@ __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, in
     product[myIndex] = (polyA[a] * polyB[b]) % modBy;
 }
 
-// sumProductsParallel 
+// sumProductsParallel uses prodSize threads, each thread corresponding to a degree, to sum common terms and determine the actual product of polyA and polyB
 __global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy) {
     int responsibleFor = blockIdx.x * blockDim.x + threadIdx.x; // used to check which threads are going to be active during this step
 
