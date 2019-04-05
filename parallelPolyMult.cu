@@ -45,7 +45,7 @@ int main() {
     host_polyB = (int *) malloc(numTerms * sizeof(int));
 
     // generate random polynomials of size numTerms
-    printf("Generating polynomials...");
+    printf("Generating polynomials...\n\n");
     genPolynomials(host_polyA, host_polyB, numTerms);
 
     printf("polyA:\n");
@@ -131,34 +131,34 @@ int main() {
     // multiply polynomials in serial and write to host_product_serial for verification
     multPolynomialsSerial(host_polyA, host_polyB, numTerms, host_product_serial, degreeOfProduct+1);
 
-    printf("serial result:\n");
+    printf("Serial result:\n");
     for (int i = 0; i < degreeOfProduct+1; i++) {
         printf("%dx^%d ", host_product_serial[i], i);
         if (i != degreeOfProduct) {
             printf("+ ");
         }
     }
-    printf("\n\nparallel result:\n");
+    printf("\n\nParallel result:\n");
     for (int i = 0; i < degreeOfProduct+1; i++) {
         printf("%dx^%d ", host_final_product[i], i);
         if (i != degreeOfProduct) {
             printf("+ ");
         }
     }
-    printf("\n\nverification:\n");
+    printf("\n\n");
     bool allRight = 1;
     for (int i = 0; i < degreeOfProduct+1; i++) {
         if (host_product_serial[i] == host_final_product[i]) {
             continue;
         } else {
-            printf("coefficients at degree %d are not equivalent: serial!=parallel (%d!=%d)", i, host_product_serial[i], host_final_product[i]);
+            printf("Coefficients at degree %d are not equivalent: serial!=parallel (%d!=%d)\n", i, host_product_serial[i], host_final_product[i]);
             allRight = 0;
         }
     }
     if (allRight) {
-        printf("Verification successful. The serial and parallel polynomial multiplications produced the same result!");
+        printf("Verification successful. The serial and parallel polynomial multiplications produced the same result!\n\n");
     } else {
-        printf("Looks like there were some discrepancies. Verification failed.");
+        printf("Looks like there were some discrepancies. Verification failed.\n\n");
     }
 
     // free host and device memory
