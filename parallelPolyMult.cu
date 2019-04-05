@@ -64,7 +64,7 @@ int main() {
     // allocate blocks of memory on the host for storing the product with size degreeOfProduct + 1 (serial)
     // and numTerms*numTerms for the intermediary parallel product, as well asthe final parallel product
     // two different allocations in order to verify results at the end!
-    int *host_product_serial, *host_final_product;
+    int *host_product_serial, *host_product_parallel, *host_final_product;
     host_product_serial = (int *) malloc((degreeOfProduct+1) * sizeof(int)); // sum of products is intrinsic
     host_product_parallel = (int *) malloc(numTerms * numTerms * sizeof(int)); // because of n threads in each n thread blocks
     host_final_product = (int *) malloc((degreeOfProduct+1) * sizeof(int)); // final product from parallel version once summed
