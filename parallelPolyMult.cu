@@ -114,14 +114,14 @@ int main() {
     //     }
     // }
 
-    printf("serial produced:/n");
+    printf("serial produced:\n");
     for (int i = 0; i < degreeOfProduct+1; i++) {
         printf("%dx^%d ", host_product_serial[i], i);
         if (i != degreeOfProduct) {
             printf("+ ");
         }
     }
-    printf("\n\nparallel produced:");
+    printf("\n\nparallel produced:\n");
     for (int i = 0; i < degreeOfProduct+1; i++) {
         printf("%dx^%d ", host_final_product[i], i);
         if (i != degreeOfProduct) {
@@ -193,20 +193,16 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
 __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy) {
     int a = blockIdx.x; // n blocks means each block has a corresponding term in A
     int b = (blockIdx.x + threadIdx.x) % polySize; // each thread assigned to term in B
-
     int degreeOfTerms = a + b;
-    printf("I am block=%d, thread=%d, a=%d, b=%d, and the val of product[%d] is %d. adding %d * %d = %d, mod is %d\n\n", blockIdx.x, threadIdx.x, a, b, degreeOfTerms, product[degreeOfTerms], polyA[a], polyB[b], polyA[a]*polyB[b], (polyA[a]*polyB[b])%modBy);
-    product[degreeOfTerms] = (product[a*b] + polyA[a] * polyB[b]) % modBy; 
-    printf("I am block=%d, thread=%d and now prouct[%d] is %d\n\n", blockIdx.x, threadIdx.x, degreeOfTerms, product[degreeOfTerms]);
+
+    product[degreeOfTerms] = (product[degreeOfTerms] + polyA[a] * polyB[b]) % modBy; 
 }
 
-void checkCUDAError(const char *msg)
-{
+void checkCUDAError(const char *msg) {
     cudaError_t err = cudaGetLastError();
-    if( cudaSuccess != err)
+    if(cudaSuccess != err)
     {
-        fprintf(stderr, "Cuda error: %s: %s.\n", msg,
-                              cudaGetErrorString( err) );
+        fprintf(stderr, "CUDA error: %s: %s.\n", msg, cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
 }
