@@ -1,10 +1,10 @@
 /*
     CS 4402 Distributed and Parallel Systems
-    Assignment 2 Question 1: N thread blocks and N threads per thread block
+    Assignment 2 Question 2: N^2/t thread blocks with t threads each, where t ∈ {64, 128, 264, 512}
     Sarah Whelan 250778849
 
-    TO RUN: nvcc q1_swhela2.cu -o q1_swhela2
-            ./q1_swhela2
+    TO RUN: nvcc q2_swhela2.cu -o q2_swhela2
+            ./q2_swhela2
 */
 
 #include <stdio.h>
@@ -38,8 +38,15 @@ int main() {
     numTerms = 1 << numTerms;
     printf("Number of terms per polynomial = %d, hence each polynomial will have degree = %d.\n\n", numTerms, numTerms-1);
 
-    // use numTerms as the number of blocks per thread and the number of blocks
-    int threadsPerBlock = numTerms;
+    int threadsPerBlock;
+    printf("Specify the number of threads per thread block from {64, 128, 264, 512}: ");
+    scanf("%d", &threadsPerBlock);
+    if (threadsPerBlock != (64 || 128 || 264 || 512)) {
+        printf("Invalid entry. Number of threads must be one of {64, 128, 264, 512}.");
+        return 1;
+    }
+
+    // calculate number of blocks
     int blocks = numTerms;
 
     // instantiate and allocate host memory blocks to store each polynomial of size numTerms
