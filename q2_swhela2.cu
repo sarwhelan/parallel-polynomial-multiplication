@@ -39,15 +39,15 @@ int main() {
     printf("Number of terms per polynomial = %d, hence each polynomial will have degree = %d.\n\n", numTerms, numTerms-1);
 
     int threadsPerBlock;
-    printf("Specify the number of threads per thread block from {64, 128, 256, 512}: ");
+    printf("Specify the number of threads per thread block as one of {64, 128, 256, 512}: ");
     scanf("%d", &threadsPerBlock);
     if (!(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 256 || threadsPerBlock == 512)) {
         printf("Invalid entry. Number of threads must be one of {64, 128, 256, 512}.");
         return 1;
     }
 
-    // calculate number of blocks
-    int blocks = numTerms;
+    // calculate number of blocks: n^2 / t
+    int blocks = (numTerms * numTerms) / threadsPerBlock;
 
     // instantiate and allocate host memory blocks to store each polynomial of size numTerms
     int *host_polyA, *host_polyB;
@@ -110,7 +110,7 @@ int main() {
     // setup kernel params & launch
     dim3 dimGrid(blocks);
     dim3 dimBlock(threadsPerBlock);
-    multPolynomialsParallel<<<dimGrid, dimBlock>>>(dev_polyA, dev_polyB, dev_product, numTerms, modBy);
+    multPolynomialsParallel<<<dimGrid, dimBlock>>>(dev_polyA, dev_polyB, dev_product, numTerms, modBy, blocks);
 
     cudaThreadSynchronize(); // wait for ALL threads from all blocks to complete
     checkCUDAError("kernel invocation");
@@ -227,9 +227,15 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
 }
 
 // multPolynomialsParallel determines the intermediary products of the polynomial multiplication problem
-__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy) {
-    int a = blockIdx.x; // all threads in the same block will access the same polyA element
-    int b = threadIdx.x; // but all threads will access individual polyB elements
+__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy, int numBlocks) {
+    int a, b, blocksPerA, blockPosition;
+
+    blocksPerA = numBlocks / polySize; // e.g. if numBlocks = 2048 and polySize = 512, 4 thread blocks will be assigned to one coefficient in A
+    blockPos = blockIdx.x % blocksPerA; // i.e. is my thread block the first one assigned to A (blockPos = 0) or the 2nd (=1), 3rd (=2)?
+
+    a = blockIdx.x - blockPos; // e.g. if blockPos = 1, we are accessing the coefficient 1 _prior_ to our blockId in A
+    b = threadIdx.x + blockPos * blockDimx.x; // 
+
     int myIndex = blockDim.x * blockIdx.x + threadIdx.x; // where to write this thread's product
     product[myIndex] = (polyA[a] * polyB[b]) % modBy;
 }
