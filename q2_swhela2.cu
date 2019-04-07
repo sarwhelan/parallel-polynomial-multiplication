@@ -28,7 +28,6 @@ int main() {
     printf("Specify the number of terms in the polynomial by specifying the exponent on base 2. Value must be > 5 and <= 10, e.g. enter '6' if you want 2^6 terms (AKA 64 terms) per polynomial: ");
     scanf("%d", &numTerms);
 
-    printf("\nYou entered '%d'.\n", numTerms);
     if (numTerms > 10 || numTerms < 5) {
         printf("Invalid entry. The minimum number of terms is 2^6 and the maximum number of terms is 2^10. Please enter 5 < term <= 10.");
         return 1;
@@ -42,11 +41,11 @@ int main() {
     printf("Specify the number of threads per thread block (t) as one of {64, 128, 256, 512}. Keep in mind that t must be less than or equal to %d to produce a valid result: ", numTerms);
     scanf("%d", &threadsPerBlock);
     if (threadsPerBlock > numTerms) {
-        printf("Invalid entry. Value of threads per block must be less than or equal to the number of terms specified for each polynomial.");
+        printf("Invalid entry. Value of threads per block must be less than or equal to the number of terms specified for each polynomial.\n");
         return 1;
     }
     if (!(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 256 || threadsPerBlock == 512)) {
-        printf("Invalid entry. Number of threads must be one of {64, 128, 256, 512}.");
+        printf("Invalid entry. Number of threads must be one of {64, 128, 256, 512}.\n");
         return 1;
     }
 
