@@ -17,7 +17,7 @@ int modBy = 103; // common prime num used for modding coefficient values during 
 void genPolynomials(int *polyA, int *polyB, int size);
 void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, int productSize);
 __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy, int numBlocks);
-__global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy);
+__global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy, int polySize);
 void checkCUDAError(const char* msg);
 
 int main() {
@@ -129,8 +129,8 @@ int main() {
     cudaMemcpy(dev_final, host_final_product, (degreeOfProduct+1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_product, host_product_parallel, numTerms * numTerms * sizeof(int), cudaMemcpyHostToDevice);
 
-    // parameters are (int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy)
-    sumProductsParallel<<<dimGrid, dimBlock>>>(degreeOfProduct+1, threadsPerBlock, dev_final, dev_product, blocks, modBy);
+    // parameters are (int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy, int polySize)
+    sumProductsParallel<<<dimGrid, dimBlock>>>(degreeOfProduct+1, threadsPerBlock, dev_final, dev_product, blocks, modBy, numTerms);
 
     cudaThreadSynchronize(); // wait for ALL threads from all blocks to complete
     checkCUDAError("kernel invocation");
@@ -233,25 +233,29 @@ __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, in
     blocksPerA = numBlocks / polySize; // e.g. if numBlocks = 2048 and polySize = 512, 4 thread blocks will be assigned to one coefficient in A
     blockPos = blockIdx.x % blocksPerA; // i.e. is my thread block the first one assigned to A (blockPos = 0) or the 2nd (=1), 3rd (=2)?
 
-    a = blockIdx.x / blocksPerA; // e.g. if blockId is 5, we need to access A[2]
-    b = threadIdx.x + blockPos * blockDim.x;  
+    a = blockIdx.x / blocksPerA; // e.g. if blockId is 5, we need to access A[2] -> int 5/2 = 2
+    b = threadIdx.x + blockPos * blockDim.x; // multiple thread blocks are responsible for the elements in B, hence need to
+                                    // take into account our block position to determine our B index
 
     printf("I am thread %d in block %d. blocksPerA is %d and my blockPos is %d. a = %d, b = %d\n", threadIdx.x, blockIdx.x, blocksPerA, blockPos, a, b);
-
 
     int myIndex = blockDim.x * blockIdx.x + threadIdx.x; // where to write this thread's product
     product[myIndex] = (polyA[a] * polyB[b]) % modBy;
 }
 
 // sumProductsParallel uses prodSize threads, each thread corresponding to a degree, to sum common terms and determine the actual product of polyA and polyB
-__global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy) {
+__global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy, int polySize) {
     int responsibleFor = blockIdx.x * blockDim.x + threadIdx.x; // used to check which threads are going to be active during this step
+    int blocksPerA = numBlocks / polySize;
+    int blockPos = blockIdx.x % blocksPerA;
 
     // I am fully aware this is gross and not efficient at all but it does the job
     if (responsibleFor < prodSize) { // e.g. 1 < 7 so thread 1 is going to be in charge of summing the x^1 terms, threads >= prodSize will be inactive for remainder
         for (int blockNum = 0; blockNum < numBlocks; blockNum++) { // loop through blocks
             for (int indexInBlock = 0; indexInBlock < threadsPerBlock; indexInBlock++) { // loop through each index per block
-                int degreeOfElement = blockNum + indexInBlock; // the degree related to the coefficient stored at each products[] index is equal to the block number + the relative index in the block
+
+                int degreeOfElement = (blockNum / blocksPerA) + indexInBlock + (blockDim.x * blockPos);
+
                 if (degreeOfElement == responsibleFor) { // if this thread is responsible for the degree we just calculated
                     int spotInProducts = blockNum * blockDim.x + indexInBlock; // get its actual index in products[]
                     summedProduct[responsibleFor] = (summedProduct[responsibleFor] + products[spotInProducts]) % modBy; // and write that value into the final summedProduct[our degree]
