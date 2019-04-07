@@ -16,7 +16,7 @@ int modBy = 103; // common prime num used for modding coefficient values during 
 
 void genPolynomials(int *polyA, int *polyB, int size);
 void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, int productSize);
-__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy);
+__global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy, int numBlocks);
 __global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summedProduct, int *products, int numBlocks, int modBy);
 void checkCUDAError(const char* msg);
 
