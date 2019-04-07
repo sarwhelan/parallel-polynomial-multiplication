@@ -58,7 +58,7 @@ int main() {
     host_polyB = (int *) malloc(numTerms * sizeof(int));
 
     // generate random polynomials of size numTerms
-    printf("Generating polynomials...\n\n");
+    printf("\nGenerating polynomials...\n\n");
     genPolynomials(host_polyA, host_polyB, numTerms);
 
     printf("polyA:\n");
@@ -239,8 +239,6 @@ __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, in
     a = blockIdx.x / blocksPerA; // e.g. if blockId is 5, we need to access A[2] -> int 5/2 = 2
     b = threadIdx.x + blockPos * blockDim.x; // multiple thread blocks are responsible for the elements in B, hence need to
                                     // take into account our block position to determine our B index
-
-    //printf("I am thread %d in block %d. blocksPerA is %d and my blockPos is %d. a = %d, b = %d\n", threadIdx.x, blockIdx.x, blocksPerA, blockPos, a, b);
 
     int myIndex = blockDim.x * blockIdx.x + threadIdx.x; // where to write this thread's product
     product[myIndex] = (polyA[a] * polyB[b]) % modBy;
