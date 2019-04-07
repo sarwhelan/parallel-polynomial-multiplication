@@ -255,6 +255,7 @@ __global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summ
             for (int indexInBlock = 0; indexInBlock < threadsPerBlock; indexInBlock++) { // loop through each index per block
 
                 int degreeOfElement = (blockNum / blocksPerA) + indexInBlock + (blockDim.x * blockPos);
+                printf("block num %d, index in block %d, has degree %d", blockNum, indexInBlock, degreeOfElement);
 
                 if (degreeOfElement == responsibleFor) { // if this thread is responsible for the degree we just calculated
                     int spotInProducts = blockNum * blockDim.x + indexInBlock; // get its actual index in products[]
