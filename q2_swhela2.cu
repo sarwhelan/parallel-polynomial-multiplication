@@ -1,6 +1,6 @@
 /*
     CS 4402 Distributed and Parallel Systems
-    Assignment 2 Question 2: N^2/t thread blocks with t threads each, where t ∈ {64, 128, 264, 512}
+    Assignment 2 Question 2: N^2/t thread blocks with t threads each, where t ∈ {64, 128, 256, 512}
     Sarah Whelan 250778849
 
     TO RUN: nvcc q2_swhela2.cu -o q2_swhela2
@@ -39,10 +39,10 @@ int main() {
     printf("Number of terms per polynomial = %d, hence each polynomial will have degree = %d.\n\n", numTerms, numTerms-1);
 
     int threadsPerBlock;
-    printf("Specify the number of threads per thread block from {64, 128, 264, 512}: ");
+    printf("Specify the number of threads per thread block from {64, 128, 256, 512}: ");
     scanf("%d", &threadsPerBlock);
-    if (!(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 264 || threadsPerBlock == 512)) {
-        printf("Invalid entry. Number of threads must be one of {64, 128, 264, 512}.");
+    if (!(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 256 || threadsPerBlock == 512)) {
+        printf("Invalid entry. Number of threads must be one of {64, 128, 256, 512}.");
         return 1;
     }
 
