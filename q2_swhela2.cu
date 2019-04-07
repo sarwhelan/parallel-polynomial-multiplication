@@ -41,10 +41,10 @@ int main() {
     int threadsPerBlock;
     printf("Specify the number of threads per thread block as one of {64, 128, 256, 512}: ");
     scanf("%d", &threadsPerBlock);
-    if (!(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 256 || threadsPerBlock == 512)) {
-        printf("Invalid entry. Number of threads must be one of {64, 128, 256, 512}.");
-        return 1;
-    }
+    // if (!(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 256 || threadsPerBlock == 512)) {
+    //     printf("Invalid entry. Number of threads must be one of {64, 128, 256, 512}.");
+    //     return 1;
+    // }
 
     // calculate number of blocks: n^2 / t
     int blocks = (numTerms * numTerms) / threadsPerBlock;
@@ -232,7 +232,8 @@ __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, in
 
     blocksPerA = numBlocks / polySize; // e.g. if numBlocks = 2048 and polySize = 512, 4 thread blocks will be assigned to one coefficient in A
     blockPos = blockIdx.x % blocksPerA; // i.e. is my thread block the first one assigned to A (blockPos = 0) or the 2nd (=1), 3rd (=2)?
-
+    printf("I am thread %d in block %d. blocksPerA is %d and my blockPos is %d", threadIdx.x, blockIdx.x, blocksPerA, blockPos);
+    
     a = blockIdx.x - blockPos; // e.g. if blockPos = 1, we are accessing the coefficient 1 _prior_ to our blockId in A
     b = threadIdx.x + blockPos * blockDim.x; // 
 
