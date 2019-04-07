@@ -41,7 +41,7 @@ int main() {
     int threadsPerBlock;
     printf("Specify the number of threads per thread block from {64, 128, 264, 512}: ");
     scanf("%d", &threadsPerBlock);
-    if (threadsPerBlock != (64 || 128 || 264 || 512)) {
+    if !(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 264 || threadsPerBlock == 512) {
         printf("Invalid entry. Number of threads must be one of {64, 128, 264, 512}.");
         return 1;
     }
