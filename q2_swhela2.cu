@@ -29,7 +29,7 @@ int main() {
     scanf("%d", &numTerms);
 
     printf("\nYou entered '%d'.\n", numTerms);
-    if (numTerms > 10 || numTerms < 64) {
+    if (numTerms > 10 || numTerms < 5) {
         printf("Invalid entry. The minimum number of terms is 2^6 and the maximum number of terms is 2^10. Please enter 5 < term <= 10.");
         return 1;
     }
