@@ -41,6 +41,10 @@ int main() {
     int threadsPerBlock;
     printf("Specify the number of threads per thread block (t) as one of {64, 128, 256, 512}. Keep in mind that t must be less than or equal to %d to produce a valid result: ", numTerms);
     scanf("%d", &threadsPerBlock);
+    if (threadsPerBlock > numTerms) {
+        printf("Invalid entry. Value of threads per block must be less than or equal to the number of terms specified for each polynomial.");
+        return 1;
+    }
     if (!(threadsPerBlock == 64 || threadsPerBlock == 128 || threadsPerBlock == 256 || threadsPerBlock == 512)) {
         printf("Invalid entry. Number of threads must be one of {64, 128, 256, 512}.");
         return 1;
@@ -259,7 +263,6 @@ __global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summ
                 if (indexInBlock == 0 && blockPos == 0 && degreeOfElement > responsibleFor) {
                     return; // this thread is done summing its common terms
                 } 
-
                 else if (degreeOfElement == responsibleFor) { // if this thread is responsible for the degree we just calculated
                     int spotInProducts = blockNum * blockDim.x + indexInBlock; // get its actual index in products[]
                     summedProduct[responsibleFor] = (summedProduct[responsibleFor] + products[spotInProducts]) % modBy; // and write that value into the final summedProduct[our degree]

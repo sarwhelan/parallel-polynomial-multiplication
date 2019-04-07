@@ -235,8 +235,13 @@ __global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summ
     if (responsibleFor < prodSize) { // e.g. 1 < 7 so thread 1 is going to be in charge of summing the x^1 terms, threads >= prodSize will be inactive for remainder
         for (int blockNum = 0; blockNum < numBlocks; blockNum++) { // loop through blocks
             for (int indexInBlock = 0; indexInBlock < threadsPerBlock; indexInBlock++) { // loop through each index per block
+                
                 int degreeOfElement = blockNum + indexInBlock; // the degree related to the coefficient stored at each products[] index is equal to the block number + the relative index in the block
-                if (degreeOfElement == responsibleFor) { // if this thread is responsible for the degree we just calculated
+                
+                if (indexInBlock == 0 && degreeOfElement > responsibleFor) {
+                    return; // this thread is done summing its common terms
+                } 
+                else if (degreeOfElement == responsibleFor) { // if this thread is responsible for the degree we just calculated
                     int spotInProducts = blockNum * blockDim.x + indexInBlock; // get its actual index in products[]
                     summedProduct[responsibleFor] = (summedProduct[responsibleFor] + products[spotInProducts]) % modBy; // and write that value into the final summedProduct[our degree]
                 }
