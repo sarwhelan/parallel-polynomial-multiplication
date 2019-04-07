@@ -228,13 +228,13 @@ void multPolynomialsSerial(int *polyA, int *polyB, int polySize, int *product, i
 
 // multPolynomialsParallel determines the intermediary products of the polynomial multiplication problem
 __global__ void multPolynomialsParallel(int *polyA, int *polyB, int *product, int polySize, int modBy, int numBlocks) {
-    int a, b, blocksPerA, blockPosition;
+    int a, b, blocksPerA, blockPos;
 
     blocksPerA = numBlocks / polySize; // e.g. if numBlocks = 2048 and polySize = 512, 4 thread blocks will be assigned to one coefficient in A
     blockPos = blockIdx.x % blocksPerA; // i.e. is my thread block the first one assigned to A (blockPos = 0) or the 2nd (=1), 3rd (=2)?
 
     a = blockIdx.x - blockPos; // e.g. if blockPos = 1, we are accessing the coefficient 1 _prior_ to our blockId in A
-    b = threadIdx.x + blockPos * blockDimx.x; // 
+    b = threadIdx.x + blockPos * blockDim.x; // 
 
     int myIndex = blockDim.x * blockIdx.x + threadIdx.x; // where to write this thread's product
     product[myIndex] = (polyA[a] * polyB[b]) % modBy;
