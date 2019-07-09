@@ -249,7 +249,6 @@ __global__ void sumProductsParallel(int prodSize, int threadsPerBlock, int *summ
     int responsibleFor = blockIdx.x * blockDim.x + threadIdx.x; // used to check which threads are going to be active during this step
     int blocksPerA = numBlocks / polySize;
 
-    // I am fully aware this is gross and not efficient at all but it does the job
     if (responsibleFor < prodSize) { // e.g. 1 < 7 so thread 1 is going to be in charge of summing the x^1 terms, threads >= prodSize will be inactive for remainder
         for (int blockNum = 0; blockNum < numBlocks; blockNum++) { // loop through blocks
             for (int indexInBlock = 0; indexInBlock < threadsPerBlock; indexInBlock++) { // loop through each index per block
