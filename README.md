@@ -1,2 +1,4 @@
 # parallel-polynomial-multiplication
-CUDA implementation of polynomial multiplication (up to 2^10 terms each)
+Univariate polynomial multiplication of two polynomials of the same degree, with maximum degree being 1023.
+
+Built with CUDA C++ and executed on a NVIDIA GPU cluster.
